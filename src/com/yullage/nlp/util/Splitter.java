@@ -53,42 +53,68 @@ public class Splitter {
 
             String line;
             while ((line = br.readLine()) != null) {
-                writeResult(line, targetFile);
-                targetFile.write("\n");
+                boolean isOk = false;
+                try {
+                    isOk = writeResult(line.trim(), targetFile);
+                } catch (Exception e) {
+                    System.err.println("Fail to split sentence! " + sourceFile);
+                    System.err.println("File: " + sourceFile);
+                    System.err.println("Sentence: " + line.trim());
+                    e.printStackTrace(System.err);
+                }
+
+                if (isOk) {
+                    targetFile.write("\n");
+                }
             }
         } else {
-            writeResult(IOUtils.slurpFile(sourceFile, "UTF-8"), targetFile);
+            try {
+                writeResult(IOUtils.slurpFile(sourceFile, "UTF-8"), targetFile);
+            } catch (Exception e) {
+                System.err.println("Fail to split file: " + sourceFile);
+                e.printStackTrace(System.err);
+            }
         }
 
         targetFile.close();
     }
 
-    private void writeResult(String corpus, Writer targetFile) throws IOException {
-        Annotation document = new Annotation(corpus);
-        pipeline.annotate(document);
+    private boolean writeResult(String corpus, Writer targetFile) {
+        if (corpus.length() > 0) {
+            Annotation document = new Annotation(corpus);
+            pipeline.annotate(document);
 
-        List<CoreMap> sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
-        if (sentences != null) {
-            int lastSentenceIndex = sentences.size() - 1;
+            List<CoreMap> sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
+            if (sentences != null) {
+                int lastSentenceIndex = sentences.size() - 1;
 
-            for (int i = 0; i < sentences.size(); i++) {
-                List<CoreLabel> tokens = sentences.get(i).get(CoreAnnotations.TokensAnnotation.class);
-                if (tokens != null) {
-                    int lastTokenIndex = tokens.size() - 1;
+                try {
+                    for (int i = 0; i < sentences.size(); i++) {
+                        List<CoreLabel> tokens = sentences.get(i).get(CoreAnnotations.TokensAnnotation.class);
+                        if (tokens != null) {
+                            int lastTokenIndex = tokens.size() - 1;
 
-                    for (int j = 0; j < tokens.size(); j++) {
-                        String word = tokens.get(j).get(CoreAnnotations.TextAnnotation.class);
-                        targetFile.write(word);
-                        if ((lastTokenIndex == 0) ||(j < lastTokenIndex)) {
-                            targetFile.write(WORD_SEPARATOR);
+                            for (int j = 0; j < tokens.size(); j++) {
+                                String word = tokens.get(j).get(CoreAnnotations.TextAnnotation.class);
+                                targetFile.write(word);
+                                if ((lastTokenIndex == 0) || (j < lastTokenIndex)) {
+                                    targetFile.write(WORD_SEPARATOR);
+                                }
+                            }
+                        }
+
+                        if (i < lastSentenceIndex) {
+                            targetFile.write("\n");
                         }
                     }
-                }
-
-                if (i < lastSentenceIndex) {
-                    targetFile.write("\n");
+                } catch (IOException e) {
+                    System.err.println("Fail to write split sentence to file!");
+                    return false;
                 }
             }
+            return true;
         }
+
+        return false;
     }
 }

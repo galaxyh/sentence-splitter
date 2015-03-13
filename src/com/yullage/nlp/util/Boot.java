@@ -27,6 +27,7 @@ public class Boot {
             return;
         }
 
+        long timeStart = System.currentTimeMillis();
         if (config.io == IoType.FILE) {
             splitFile(config);
         } else if (config.io == IoType.STDIO) {
@@ -34,7 +35,8 @@ public class Boot {
             //stdioSplitter(config);
         }
 
-        System.out.println("All done.");
+        float timeElapsed = ((float)(System.currentTimeMillis() - timeStart)) / 60000;
+        System.out.println("All done. (" + Float.toString(timeElapsed) + " minutes)");
     }
 
     private static void splitFile(Config config) {
@@ -44,12 +46,24 @@ public class Boot {
         String targetPath = config.targetPath;
         String targetFileExt = config.targetFileExt;
 
-        File directory = new File(config.sourcePath);
-        for (File file : directory.listFiles()) {
+        File sourceDir = new File(config.sourcePath);
+        if (!sourceDir.isDirectory()) {
+            System.out.println(config.sourcePath + " is not a directory. Process aborted!");
+        }
+
+        File targetDir = new File(config.targetPath);
+        if (!targetDir.isDirectory()) {
+            System.out.println(config.targetPath + " is not a directory. Process aborted!");
+        }
+
+        for (File file : sourceDir.listFiles()) {
             if (file.isFile()) {
                 try {
+                    long timeStart = System.currentTimeMillis();
+                    System.out.println("Processing file \"" + file.getName() + "\" ...");
                     splitter.split(sourcePath + "/" + file.getName(), targetPath + "/" + file.getName() + "." + targetFileExt);
-                    System.out.println("File \"" + file.getName() + "\" processed.");
+                    float timeElapsed = ((float)(System.currentTimeMillis() - timeStart)) / 1000;
+                    System.out.println("File \"" + file.getName() + "\" processed. (" + Float.toString(timeElapsed) + " seconds)");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
