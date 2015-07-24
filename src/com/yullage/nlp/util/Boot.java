@@ -3,8 +3,7 @@ package com.yullage.nlp.util;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * Created by Yu-chun Huang on 3/11/15.
@@ -31,12 +30,45 @@ public class Boot {
         if (config.io == IoType.FILE) {
             splitFile(config);
         } else if (config.io == IoType.STDIO) {
-            System.out.println("Standard I/O is not yet implemented.");
-            //stdioSplitter(config);
+            splitStdio(config);
         }
 
         float timeElapsed = ((float)(System.currentTimeMillis() - timeStart)) / 60000;
         System.out.println("All done. (" + Float.toString(timeElapsed) + " minutes)");
+    }
+
+    private static void splitStdio(Config config) {
+        Splitter splitter = new Splitter(config);
+
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
+            Writer writer = new OutputStreamWriter(System.out, "UTF-8");
+
+            String input = "";
+            String line;
+            if (config.stdioEofMark) {
+                while ((line = reader.readLine()) != null) {
+                    if (line.trim().equals(Splitter.EOF_MARK)) {
+                        input.trim();
+                        splitter.splitStdio(input, writer);
+                        System.out.print("\n");
+                        input = "";
+                    } else {
+                        input += line + "\n";
+                    }
+                }
+            } else {
+                while ((line = reader.readLine()) != null) {
+                    splitter.splitStdio(line, writer);
+                    System.out.print("\n");
+                }
+            }
+
+            reader.close();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void splitFile(Config config) {
@@ -61,7 +93,7 @@ public class Boot {
                 try {
                     long timeStart = System.currentTimeMillis();
                     System.out.println("Processing file \"" + file.getName() + "\" ...");
-                    splitter.split(sourcePath + "/" + file.getName(), targetPath + "/" + file.getName() + "." + targetFileExt);
+                    splitter.splitFile(sourcePath + "/" + file.getName(), targetPath + "/" + file.getName() + "." + targetFileExt);
                     float timeElapsed = ((float)(System.currentTimeMillis() - timeStart)) / 1000;
                     System.out.println("File \"" + file.getName() + "\" processed. (" + Float.toString(timeElapsed) + " seconds)");
                 } catch (IOException e) {

@@ -16,6 +16,7 @@ import java.util.Properties;
  */
 public class Splitter {
     public static final String WORD_SEPARATOR = " ";
+    public static final String EOF_MARK = "__EOF__";
     private Config config;
     private Properties props = new Properties();
     private StanfordCoreNLP pipeline;
@@ -43,7 +44,22 @@ public class Splitter {
         pipeline = new StanfordCoreNLP(props);
     }
 
-    public void split(String sourceFileName, String targetFileName) throws IOException {
+    public void splitStdio(String sentences, Writer writer) {
+        try {
+            writeResult(sentences, writer);
+
+            if (config.eofMark) {
+                writer.write("\n");
+                writer.write(Splitter.EOF_MARK);
+                writer.write("\n");
+                writer.flush();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void splitFile(String sourceFileName, String targetFileName) throws IOException {
         File sourceFile = new File(sourceFileName);
         Writer targetFile = new OutputStreamWriter(new FileOutputStream(targetFileName), "UTF-8");
 
@@ -79,7 +95,7 @@ public class Splitter {
         targetFile.close();
     }
 
-    private boolean writeResult(String corpus, Writer targetFile) {
+    private boolean writeResult(String corpus, Writer writer) {
         if (corpus.length() > 0) {
             Annotation document = new Annotation(corpus);
             pipeline.annotate(document);
@@ -96,19 +112,19 @@ public class Splitter {
 
                             for (int j = 0; j < tokens.size(); j++) {
                                 String word = tokens.get(j).get(CoreAnnotations.TextAnnotation.class);
-                                targetFile.write(word);
+                                writer.write(word);
                                 if ((lastTokenIndex == 0) || (j < lastTokenIndex)) {
-                                    targetFile.write(WORD_SEPARATOR);
+                                    writer.write(WORD_SEPARATOR);
                                 }
                             }
                         }
 
                         if (i < lastSentenceIndex) {
-                            targetFile.write("\n");
+                            writer.write("\n");
                         }
                     }
                 } catch (IOException e) {
-                    System.err.println("Fail to write split sentence to file!");
+                    System.err.println("Fail to write split sentence!");
                     return false;
                 }
             }
