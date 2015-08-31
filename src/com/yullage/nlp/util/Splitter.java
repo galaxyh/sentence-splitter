@@ -86,6 +86,7 @@ public class Splitter {
         } else {
             try {
                 writeResult(IOUtils.slurpFile(sourceFile, "UTF-8"), targetFile);
+                targetFile.write("\n");
             } catch (Exception e) {
                 System.err.println("Fail to split file: " + sourceFile);
                 e.printStackTrace(System.err);
